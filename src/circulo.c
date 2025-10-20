@@ -2,42 +2,40 @@
 #define CIRCULO_H
 
 #include <stdlib.h>
-#include "formas.h"  // Para usar TipoForma
-
-typedef void* CIRCULO;
 
 /**
- * @brief Cria e inicializa um novo círculo.
- * 
- * @param id Identificador do círculo.
- * @param x Coordenada X do centro.
- * @param y Coordenada Y do centro.
- * @param raio Raio do círculo.
- * @param corP Cor de preenchimento.
- * @param corB Cor da borda.
- * @return Ponteiro para o círculo criado.
+ * @file circulo.h
+ * @brief Módulo para representar círculos.
+ *
+ * Define uma estrutura opaca para círculos, com coordenadas, raio, cor de borda e preenchimento.
+ * Fornece funções para criação, acesso, modificação, cálculo de área e desalocação.
  */
-CIRCULO criaCirculo(int id, float x, float y, float raio, char* corP, char* corB);
 
-// Getters
-int getIDCirculo(CIRCULO c);
-float getXCirculo(CIRCULO c);
-float getYCirculo(CIRCULO c);
-float getRaioCirculo(CIRCULO c);
-char* getCorBCirculo(CIRCULO c);
-char* getCorPCirculo(CIRCULO c);
-TipoForma getTipoCirculo(CIRCULO c); // Novo
+typedef void* CIRCULO; /**< Tipo opaco para círculo */
 
-// Setters
-void setIDCirculo(CIRCULO c, int id);
-void setXCirculo(CIRCULO c, float x);
-void setYCirculo(CIRCULO c, float y);
-void setRaioCirculo(CIRCULO c, float raio);
-void setCorBCirculo(CIRCULO c, char* corB);
-void setCorPCirculo(CIRCULO c, char* corP);
+/* ======== CRIAÇÃO ======== */
+CIRCULO novoCirculo(int id, float x, float y, float raio, char* corP, char* corB);
 
-// Funções auxiliares
-float calculoAreaCirculo(CIRCULO c);
-void desalocaCirculo(CIRCULO c);
+/* ======== MÉTODOS GET ======== */
+int obterIDCirculo(CIRCULO c);
+float obterXCirculo(CIRCULO c);
+float obterYCirculo(CIRCULO c);
+float obterRaioCirculo(CIRCULO c);
+char* obterCorBCirculo(CIRCULO c);
+char* obterCorPCirculo(CIRCULO c);
+
+/* ======== MÉTODOS SET ======== */
+void definirIDCirculo(CIRCULO c, int id);
+void definirXCirculo(CIRCULO c, float x);
+void definirYCirculo(CIRCULO c, float y);
+void definirRaioCirculo(CIRCULO c, float raio);
+void definirCorBCirculo(CIRCULO c, char* corB);
+void definirCorPCirculo(CIRCULO c, char* corP);
+
+/* ======== MÉTODOS ADICIONAIS ======== */
+float calcularAreaCirculo(CIRCULO c);
+
+/* ======== DESALOCAÇÃO ======== */
+void liberarCirculo(CIRCULO c);
 
 #endif

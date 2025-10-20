@@ -1,81 +1,179 @@
 /*
-================================================================================
-Arquivo: gerenciador_arquivos.h
---------------------------------------------------------------------------------
-Descrição:
-  Header do módulo "Gerenciador de Arquivos", responsável por ler arquivos texto,
-  armazenar suas linhas em uma fila e em uma pilha, e gerenciar a liberação
-  de memória dessas estruturas.
+ * gerenciador_arquivos.c
+ *
+ * Módulo responsável por realizar a leitura e gerenciamento de arquivos de texto,
+ * armazenando suas linhas em uma fila (para processamento sequencial) e em uma pilha
+ * (para posterior liberação de memória).
+ *
+ * Este módulo implementa funções para criação, leitura, acesso e destruição de
+ * estruturas que representam o conteúdo de um arquivo. O objetivo é fornecer uma
+ * interface simples e segura para o controle de dados lidos de arquivos.
+ */
 
-  O tipo de dado principal, `DadosDoArquivo`, é opaco (incompleto) e deve ser
-  manipulado apenas através das funções desta interface.
-
-Dependências:
-  - fila.h
-  - pilha.h
-================================================================================
-*/
-
-#ifndef GERENCIADOR_ARQUIVOS_H
-#define GERENCIADOR_ARQUIVOS_H
-
+#include "gerenciador_arquivos.h"
 #include "fila.h"
 #include "pilha.h"
 
-/*==============================================================================
-  Definições de tipos
-==============================================================================*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-/// Tipo opaco que representa os dados de um arquivo.
-/// A estrutura real é definida apenas em gerenciador_arquivos.c.
-typedef void* DadosDoArquivo;
-
-/*==============================================================================
-  Funções públicas da interface
-==============================================================================*/
-
-/**
- * @brief Cria um novo objeto que representa um arquivo e lê todas as suas linhas.
- * 
- * O arquivo é aberto em modo leitura e cada linha é armazenada tanto em uma fila
- * quanto em uma pilha, permitindo diferentes formas de acesso.
- * 
- * @param caminhoArquivo Caminho completo do arquivo a ser lido.
- * @return DadosDoArquivo Ponteiro genérico para o objeto criado, ou NULL em caso de erro.
+/* =========================================================================
+ * Estruturas internas (privadas)
+ * =========================================================================
  */
-DadosDoArquivo criar_dados_arquivo(const char *caminhoArquivo);
 
-/**
- * @brief Libera toda a memória associada ao objeto DadosDoArquivo.
- * 
- * Inclui a desalocação da fila, da pilha e das strings das linhas armazenadas.
- * 
- * @param dadosArquivo Ponteiro para o objeto a ser destruído. Se for NULL, nada é feito.
+typedef struct {
+    const char *caminhoArquivo;        // Caminho completo do arquivo
+    const char *nomeArquivo;           // Nome do arquivo (sem o caminho)
+    Fila filaDeLinhas;                 // Fila que armazena as linhas lidas
+    Pilha pilhaLinhasParaLiberar;      // Pilha usada para liberar memória das linhas
+} DadosDoArquivoSt;
+
+typedef struct {
+    Fila filaDeLinhas;
+    Pilha pilhaLinhasParaLiberar;
+} EstruturasDeLinhas;
+
+/* =========================================================================
+ * Funções auxiliares (privadas)
+ * =========================================================================
  */
-void destruir_dados_arquivo(DadosDoArquivo dadosArquivo);
 
-/**
- * @brief Retorna o caminho completo do arquivo original.
- * 
- * @param dadosArquivo Ponteiro para o objeto DadosDoArquivo.
- * @return const char* Caminho do arquivo, ou NULL se dadosArquivo for inválido.
+/// Lê uma linha do arquivo usando fgets e remove o '\n' final, se existir.
+static char* lerLinha(FILE *arquivo, char *buffer, size_t tamanho) {
+    if (fgets(buffer, tamanho, arquivo) == NULL)
+        return NULL;
+
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n')
+        buffer[len - 1] = '\0';
+
+    return buffer;
+}
+
+/// Duplica uma string, retornando uma cópia alocada dinamicamente.
+static char* duplicarString(const char *s) {
+    if (s == NULL)
+        return NULL;
+
+    size_t len = strlen(s) + 1;
+    char *dup = malloc(len);
+    if (dup)
+        strcpy(dup, s);
+
+    return dup;
+}
+
+/// Lê todas as linhas de um arquivo e as insere na fila e pilha correspondentes.
+static EstruturasDeLinhas* carregarLinhasArquivo(const char *caminhoArquivo) {
+    EstruturasDeLinhas *estruturas = malloc(sizeof(EstruturasDeLinhas));
+    if (!estruturas) {
+        printf("[ERRO] Falha ao alocar EstruturasDeLinhas.\n");
+        return NULL;
+    }
+
+    Fila fila = criaFila();
+    Pilha pilha = criaPilha();
+    if (!fila || !pilha) {
+        desalocaFila(fila);
+        desalocaPilha(pilha);
+        free(estruturas);
+        return NULL;
+    }
+
+    FILE *arquivo = fopen(caminhoArquivo, "r");
+    if (!arquivo) {
+        printf("[ERRO] Não foi possível abrir o arquivo: %s\n", caminhoArquivo);
+        desalocaFila(fila);
+        desalocaPilha(pilha);
+        free(estruturas);
+        return NULL;
+    }
+
+    char buffer[1024];
+    while (lerLinha(arquivo, buffer, sizeof(buffer))) {
+        char *linha = duplicarString(buffer);
+        enqueueFila(fila, linha);
+        pushPilha(pilha, linha);
+    }
+
+    fclose(arquivo);
+
+    estruturas->filaDeLinhas = fila;
+    estruturas->pilhaLinhasParaLiberar = pilha;
+    return estruturas;
+}
+
+/* =========================================================================
+ * Funções principais (públicas)
+ * =========================================================================
  */
-const char *obter_caminho_arquivo(const DadosDoArquivo dadosArquivo);
 
-/**
- * @brief Retorna apenas o nome do arquivo (sem o caminho).
- * 
- * @param dadosArquivo Ponteiro para o objeto DadosDoArquivo.
- * @return const char* Nome do arquivo, ou NULL se dadosArquivo for inválido.
+DadosDoArquivo criarDadosArquivo(const char *caminhoArquivo) {
+    if (!caminhoArquivo)
+        return NULL;
+
+    DadosDoArquivoSt *dados = malloc(sizeof(DadosDoArquivoSt));
+    if (!dados) {
+        printf("[ERRO] Falha ao alocar DadosDoArquivo.\n");
+        return NULL;
+    }
+
+    dados->caminhoArquivo = caminhoArquivo;
+    dados->nomeArquivo =
+        strrchr(caminhoArquivo, '/') ? strrchr(caminhoArquivo, '/') + 1 : caminhoArquivo;
+
+    EstruturasDeLinhas *estruturas = carregarLinhasArquivo(caminhoArquivo);
+    if (!estruturas) {
+        free(dados);
+        return NULL;
+    }
+
+    dados->filaDeLinhas = estruturas->filaDeLinhas;
+    dados->pilhaLinhasParaLiberar = estruturas->pilhaLinhasParaLiberar;
+    free(estruturas);
+
+    return (DadosDoArquivo)dados;
+}
+
+void destruirDadosArquivo(DadosDoArquivo dadosArquivo) {
+    if (!dadosArquivo)
+        return;
+
+    DadosDoArquivoSt *dados = (DadosDoArquivoSt *)dadosArquivo;
+
+    // Libera todas as linhas armazenadas na pilha
+    while (!pilhaVazia(dados->pilhaLinhasParaLiberar)) {
+        char *linha = popPilha(dados->pilhaLinhasParaLiberar);
+        if (linha)
+            free(linha);
+    }
+
+    desalocaPilha(dados->pilhaLinhasParaLiberar);
+    desalocaFila(dados->filaDeLinhas);
+    free(dados);
+}
+
+/* =========================================================================
+ * Funções de acesso (getters)
+ * =========================================================================
  */
-const char *obter_nome_arquivo(const DadosDoArquivo dadosArquivo);
 
-/**
- * @brief Retorna a fila com as linhas do arquivo.
- * 
- * @param dadosArquivo Ponteiro para o objeto DadosDoArquivo.
- * @return Fila Estrutura Fila contendo as linhas do arquivo, ou NULL se dadosArquivo for inválido.
- */
-Fila obter_fila_linhas(const DadosDoArquivo dadosArquivo);
+const char* obterCaminhoArquivo(DadosDoArquivo dadosArquivo) {
+    if (!dadosArquivo)
+        return NULL;
+    return ((DadosDoArquivoSt *)dadosArquivo)->caminhoArquivo;
+}
 
-#endif
+const char* obterNomeArquivo(DadosDoArquivo dadosArquivo) {
+    if (!dadosArquivo)
+        return NULL;
+    return ((DadosDoArquivoSt *)dadosArquivo)->nomeArquivo;
+}
+
+Fila obterFilaLinhas(DadosDoArquivo dadosArquivo) {
+    if (!dadosArquivo)
+        return NULL;
+    return ((DadosDoArquivoSt *)dadosArquivo)->filaDeLinhas;
+}

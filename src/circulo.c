@@ -1,41 +1,129 @@
-#ifndef CIRCULO_H
-#define CIRCULO_H
-
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "circulo.h"
 
-/**
- * @file circulo.h
- * @brief Módulo para representar círculos.
- *
- * Define uma estrutura opaca para círculos, com coordenadas, raio, cor de borda e preenchimento.
- * Fornece funções para criação, acesso, modificação, cálculo de área e desalocação.
- */
+// Estrutura que representa um círculo e suas propriedades básicas
+typedef struct {
+    int id;
+    float cx;
+    float cy;
+    float r;
+    char *borda;
+    char *preench;
+} CirculoImpl;
 
-typedef void* CIRCULO; /**< Tipo opaco para círculo */
+// Cria um novo círculo na memória e inicializa seus atributos
+CIRCULO novoCirculo(int id, float cx, float cy, float r, char *borda, char *preench) {
+    CirculoImpl *circ = (CirculoImpl *) malloc(sizeof(CirculoImpl));
 
-/* ======== CRIAÇÃO ======== */
-CIRCULO novoCirculo(int id, float x, float y, float raio, char* corP, char* corB);
+    if (circ == NULL) {
+        fprintf(stderr, "Falha ao alocar memória para círculo.\n");
+        exit(1);
+    }
 
-/* ======== MÉTODOS GET ======== */
-int obterIDCirculo(CIRCULO c);
-float obterXCirculo(CIRCULO c);
-float obterYCirculo(CIRCULO c);
-float obterRaioCirculo(CIRCULO c);
-char* obterCorBCirculo(CIRCULO c);
-char* obterCorPCirculo(CIRCULO c);
+    circ->id = id;
+    circ->cx = cx;
+    circ->cy = cy;
+    circ->r = r;
 
-/* ======== MÉTODOS SET ======== */
-void definirIDCirculo(CIRCULO c, int id);
-void definirXCirculo(CIRCULO c, float x);
-void definirYCirculo(CIRCULO c, float y);
-void definirRaioCirculo(CIRCULO c, float raio);
-void definirCorBCirculo(CIRCULO c, char* corB);
-void definirCorPCirculo(CIRCULO c, char* corP);
+    circ->borda = (char *) malloc(strlen(borda) + 1);
+    circ->preench = (char *) malloc(strlen(preench) + 1);
 
-/* ======== MÉTODOS ADICIONAIS ======== */
-float calcularAreaCirculo(CIRCULO c);
+    if (circ->borda == NULL || circ->preench == NULL) {
+        fprintf(stderr, "Erro de alocação de memória para cores.\n");
+        free(circ);
+        exit(1);
+    }
 
-/* ======== DESALOCAÇÃO ======== */
-void liberarCirculo(CIRCULO c);
+    strcpy(circ->borda, borda);
+    strcpy(circ->preench, preench);
 
-#endif
+    return circ;
+}
+
+// ======== Funções GET ========
+
+int getIdCirc(CIRCULO c) {
+    return ((CirculoImpl *) c)->id;
+}
+
+float getCentroXCirc(CIRCULO c) {
+    return ((CirculoImpl *) c)->cx;
+}
+
+float getCentroYCirc(CIRCULO c) {
+    return ((CirculoImpl *) c)->cy;
+}
+
+float getRaioCirc(CIRCULO c) {
+    return ((CirculoImpl *) c)->r;
+}
+
+char *getCorBordaCirc(CIRCULO c) {
+    return ((CirculoImpl *) c)->borda;
+}
+
+char *getCorPreenchCirc(CIRCULO c) {
+    return ((CirculoImpl *) c)->preench;
+}
+
+// ======== Funções SET ========
+
+void setIdCirc(CIRCULO c, int id) {
+    ((CirculoImpl *) c)->id = id;
+}
+
+void setCentroXCirc(CIRCULO c, float x) {
+    ((CirculoImpl *) c)->cx = x;
+}
+
+void setCentroYCirc(CIRCULO c, float y) {
+    ((CirculoImpl *) c)->cy = y;
+}
+
+void setRaioCirc(CIRCULO c, float r) {
+    ((CirculoImpl *) c)->r = r;
+}
+
+void setCorBordaCirc(CIRCULO c, char *borda) {
+    CirculoImpl *circ = (CirculoImpl *) c;
+    free(circ->borda);
+    circ->borda = (char *) malloc(strlen(borda) + 1);
+
+    if (circ->borda == NULL) {
+        fprintf(stderr, "Erro ao alocar memória para cor da borda.\n");
+        exit(1);
+    }
+
+    strcpy(circ->borda, borda);
+}
+
+void setCorPreenchCirc(CIRCULO c, char *preench) {
+    CirculoImpl *circ = (CirculoImpl *) c;
+    free(circ->preench);
+    circ->preench = (char *) malloc(strlen(preench) + 1);
+
+    if (circ->preench == NULL) {
+        fprintf(stderr, "Erro ao alocar memória para cor de preenchimento.\n");
+        exit(1);
+    }
+
+    strcpy(circ->preench, preench);
+}
+
+// ======== Funções utilitárias ========
+
+// Calcula a área do círculo com base no raio
+float areaCirc(CIRCULO c) {
+    CirculoImpl *circ = (CirculoImpl *) c;
+    return 3.14f * (circ->r * circ->r);
+}
+
+// Libera toda a memória associada ao círculo
+void liberarCirc(CIRCULO c) {
+    CirculoImpl *circ = (CirculoImpl *) c;
+    free(circ->borda);
+    free(circ->preench);
+    free(circ);
+}

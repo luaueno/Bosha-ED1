@@ -13,9 +13,6 @@ Descrição:
 Dependências:
   - fila.h
   - pilha.h
-
-Autor: (adicione seu nome)
-Data: (adicione a data atual)
 ================================================================================
 */
 

@@ -1,4 +1,4 @@
-##include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -72,3 +72,4 @@ void liberarLinha(LINHA l) {
     free(li->cor);
     free(li);
 }
+

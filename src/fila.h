@@ -1,42 +1,43 @@
-#include "fila.h"
-#include <stdio.h>
+#ifndef FILA_H
+#define FILA_H
+
+/**
+ * @file fila.h
+ * @brief Interface para a implementação de uma fila genérica em C.
+ *
+ * Este módulo define uma estrutura abstrata de fila (queue) baseada em lista encadeada,
+ * permitindo inserções no final e remoções no início (política FIFO — First In, First Out).
+ *
+ * Os elementos armazenados são do tipo `void*`, o que torna o módulo genérico.
+ * O controle da memória dos conteúdos inseridos é de responsabilidade do usuário.
+ *
+ * Funcionalidades:
+ *  - Criação e liberação de filas
+ *  - Inserção e remoção de elementos
+ *  - Consulta ao início da fila
+ *  - Verificação se está vazia
+ *  - Consulta ao tamanho atual
+ */
+
+#include <stdbool.h>
 #include <stdlib.h>
 
-// =========================================================
-// Estruturas internas da Fila
-// =========================================================
-
-// Nó individual da fila (armazenamento genérico)
-typedef struct NodoFila {
-    void *dados;
-    struct NodoFila *proximo;
-} NodoFila;
-
-// Estrutura principal da fila (implementação interna)
-typedef struct FilaImpl {
-    NodoFila *primeiro;
-    NodoFila *ultimo;
-    int qtd;
-} FilaImpl;
+/**
+ * @typedef Fila
+ * @brief Tipo opaco que representa uma fila genérica.
+ */
+typedef void* Fila;
 
 // =========================================================
 // FUNÇÃO CONSTRUTORA
 // =========================================================
 
-Fila novaFila() {
-    FilaImpl *fila = (FilaImpl *) malloc(sizeof(FilaImpl));
-
-    if (fila == NULL) {
-        fprintf(stderr, "[ERRO] Não foi possível alocar memória para a fila.\n");
-        return NULL;
-    }
-
-    fila->primeiro = NULL;
-    fila->ultimo = NULL;
-    fila->qtd = 0;
-
-    return (Fila) fila;
-}
+/**
+ * @brief Cria e inicializa uma nova fila vazia.
+ *
+ * @return Fila Ponteiro genérico para a fila criada, ou NULL em caso de erro.
+ */
+Fila novaFila();
 
 // =========================================================
 // OPERAÇÕES BÁSICAS
@@ -44,116 +45,54 @@ Fila novaFila() {
 
 /**
  * @brief Insere um novo elemento no final da fila.
+ *
  * @param f Ponteiro para a fila.
- * @param dados Ponteiro genérico para o conteúdo a ser inserido.
+ * @param dados Ponteiro genérico para o conteúdo a ser armazenado.
  * @return true se a operação for bem-sucedida, false caso contrário.
  */
-bool enfileirar(Fila f, void *dados) {
-    if (f == NULL) return false;
-
-    FilaImpl *fila = (FilaImpl *) f;
-    NodoFila *novo = (NodoFila *) malloc(sizeof(NodoFila));
-
-    if (novo == NULL) {
-        fprintf(stderr, "[ERRO] Falha ao alocar memória para o nó da fila.\n");
-        return false;
-    }
-
-    novo->dados = dados;
-    novo->proximo = NULL;
-
-    if (fila->ultimo != NULL)
-        fila->ultimo->proximo = novo;
-    else
-        fila->primeiro = novo;
-
-    fila->ultimo = novo;
-    fila->qtd++;
-
-    return true;
-}
+bool enfileirar(Fila f, void *dados);
 
 /**
  * @brief Remove e retorna o primeiro elemento da fila.
+ *
  * @param f Ponteiro para a fila.
- * @return void* Conteúdo removido, ou NULL se a fila estiver vazia.
+ * @return void* Ponteiro para o conteúdo removido, ou NULL se vazia.
  */
-void* desenfileirar(Fila f) {
-    if (f == NULL) return NULL;
-
-    FilaImpl *fila = (FilaImpl *) f;
-    if (fila->primeiro == NULL) return NULL;
-
-    NodoFila *removido = fila->primeiro;
-    void *dados = removido->dados;
-
-    fila->primeiro = removido->proximo;
-    if (fila->primeiro == NULL)
-        fila->ultimo = NULL;
-
-    free(removido);
-    fila->qtd--;
-
-    return dados;
-}
+void* desenfileirar(Fila f);
 
 /**
- * @brief Retorna o primeiro elemento da fila sem removê-lo.
+ * @brief Retorna o conteúdo do primeiro elemento sem removê-lo.
+ *
  * @param f Ponteiro para a fila.
- * @return void* Conteúdo do primeiro nó, ou NULL se vazia.
+ * @return void* Ponteiro para o conteúdo do início, ou NULL se vazia.
  */
-void* frenteFila(Fila f) {
-    if (f == NULL) return NULL;
-
-    FilaImpl *fila = (FilaImpl *) f;
-    if (fila->primeiro == NULL) return NULL;
-
-    return fila->primeiro->dados;
-}
+void* frenteFila(Fila f);
 
 /**
  * @brief Verifica se a fila está vazia.
+ *
  * @param f Ponteiro para a fila.
- * @return true se vazia, false caso contrário.
+ * @return true se estiver vazia, false caso contrário.
  */
-bool filaEstaVazia(Fila f) {
-    if (f == NULL) return true;
-
-    FilaImpl *fila = (FilaImpl *) f;
-    return (fila->qtd == 0);
-}
+bool filaEstaVazia(Fila f);
 
 /**
- * @brief Retorna o número de elementos na fila.
+ * @brief Retorna o número de elementos atualmente armazenados na fila.
+ *
  * @param f Ponteiro para a fila.
  * @return int Quantidade de elementos.
  */
-int tamanhoFila(Fila f) {
-    if (f == NULL) return 0;
-
-    FilaImpl *fila = (FilaImpl *) f;
-    return fila->qtd;
-}
+int tamanhoFila(Fila f);
 
 // =========================================================
 // DESALOCADOR
 // =========================================================
 
 /**
- * @brief Libera toda a memória associada à fila.
- * @param f Ponteiro para a fila a ser destruída.
+ * @brief Libera toda a memória alocada para a fila (mas não o conteúdo dos nós).
+ *
+ * @param f Ponteiro para a fila a ser liberada.
  */
-void liberarFila(Fila f) {
-    if (f == NULL) return;
+void liberarFila(Fila f);
 
-    FilaImpl *fila = (FilaImpl *) f;
-    NodoFila *atual = fila->primeiro;
-
-    while (atual != NULL) {
-        NodoFila *prox = atual->proximo;
-        free(atual);
-        atual = prox;
-    }
-
-    free(fila);
-}
+#endif

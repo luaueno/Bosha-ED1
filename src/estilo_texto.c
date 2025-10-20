@@ -1,69 +1,77 @@
-#ifndef ESTILO_TEXTO_H
-#define ESTILO_TEXTO_H
-
-/**
- * @file estiloTexto.h
- * @brief Módulo para gerenciamento de estilos de texto (EstiloTexto).
- *
- * Este módulo define uma interface para criação, acesso e destruição de objetos que armazenam
- * informações sobre estilo de texto: família da fonte (font family), espessura da fonte
- * (font weight) e tamanho da fonte (font size).
- *
- * A estrutura interna é opaca, garantindo encapsulamento e evitando acesso direto aos campos.
- * A manipulação é feita apenas por meio das funções fornecidas neste header.
- */
-
+#include "estiloTexto.h"
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    char* ff; // font family
+    char* fw; // font weight
+    int fs;   // font size
+} EstiloTexto;
 
 /**
- * @brief Tipo opaco que representa um estilo de texto.
+ * @brief Cria um novo EstiloTexto.
  */
-typedef void* ESTILOTEXTO;
+ESTILOTEXTO criaEstiloTexto(char* ff, char* fw, int fs) {
+
+    if(!ff) return NULL;
+
+    EstiloTexto *et = malloc(sizeof(EstiloTexto));
+    if(!et) return NULL;
+
+    et->ff = malloc(strlen(ff) + 1);
+    if(!et->ff){
+        free(et);
+        return NULL;
+    }
+    strcpy(et->ff, ff);
+
+    et->fw = malloc(strlen(fw) + 1);
+    if(!et->fw){
+        free(et->ff);
+        free(et);
+        return NULL;
+    }
+    strcpy(et->fw, fw);
+
+    et->fs = fs;
+    return et;
+}
 
 /**
- * @brief Cria um novo objeto EstiloTexto.
- * 
- * @param ff Ponteiro para string com o nome da família da fonte (font family). Não pode ser NULL.
- * @param fw Ponteiro para string com o peso da fonte (font weight), ex: "bold", "normal".
- * @param fs Inteiro representando o tamanho da fonte (font size).
- * 
- * @return ESTILOTEXTO Ponteiro opaco para o objeto criado, ou NULL em caso de falha na alocação
- *         ou se ff for NULL.
+ * @brief Libera toda a memória de EstiloTexto.
  */
-ESTILOTEXTO criaEstiloTexto(char* ff, char* fw, int fs);
+void desalocaEstiloTexto(ESTILOTEXTO estilo) {
+
+    if(!estilo) return;
+
+    EstiloTexto *et = (EstiloTexto*) estilo;
+
+    free(et->ff);
+    free(et->fw);
+    free(et);
+}
 
 /**
- * @brief Libera toda a memória associada a um objeto EstiloTexto.
- * 
- * @param estilo Ponteiro retornado por criaEstiloTexto. Se for NULL, nada acontece.
+ * @brief Retorna a font family.
  */
-void desalocaEstiloTexto(ESTILOTEXTO estilo);
+char* getFFEstiloTexto(ESTILOTEXTO estilo) {
+    if(!estilo) return NULL;
+    return ((EstiloTexto*)estilo)->ff;
+}
 
 /**
- * @brief Retorna a font family de um objeto EstiloTexto.
- * 
- * @param estilo Ponteiro para o objeto EstiloTexto.
- * 
- * @return char* Ponteiro para a string contendo a font family, ou NULL se estilo for NULL.
+ * @brief Retorna a font weight.
  */
-char* getFFEstiloTexto(ESTILOTEXTO estilo);
+char* getFWEstiloTexto(ESTILOTEXTO estilo) {
+    if(!estilo) return NULL;
+    return ((EstiloTexto*)estilo)->fw;
+}
 
 /**
- * @brief Retorna a font weight de um objeto EstiloTexto.
- * 
- * @param estilo Ponteiro para o objeto EstiloTexto.
- * 
- * @return char* Ponteiro para a string contendo a font weight, ou NULL se estilo for NULL.
+ * @brief Retorna o font size.
  */
-char* getFWEstiloTexto(ESTILOTEXTO estilo);
-
-/**
- * @brief Retorna o font size de um objeto EstiloTexto.
- * 
- * @param estilo Ponteiro para o objeto EstiloTexto.
- * 
- * @return int Valor inteiro do tamanho da fonte, ou 0 se estilo for NULL.
- */
-int getFSEstiloTexto(ESTILOTEXTO estilo);
-
-#endif
+int getFSEstiloTexto(ESTILOTEXTO estilo) {
+    if(!estilo) return 0;
+    return ((EstiloTexto*)estilo)->fs;
+}

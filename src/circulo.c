@@ -3,127 +3,61 @@
 #include <string.h>
 #include "circulo.h"
 
-// Estrutura que representa um círculo e suas propriedades básicas
 typedef struct {
     int id;
-    float cx;
-    float cy;
-    float r;
-    char *borda;
-    char *preench;
-} CirculoImpl;
+    float x;
+    float y;
+    float raio;
+    char *corP;
+    char *corB;
+} CirculoInterno;
 
-// Cria um novo círculo na memória e inicializa seus atributos
-CIRCULO novoCirculo(int id, float cx, float cy, float r, char *borda, char *preench) {
-    CirculoImpl *circ = (CirculoImpl *) malloc(sizeof(CirculoImpl));
+CIRCULO novoCirculo(int id, float x, float y, float raio, char* corP, char* corB) {
+    CirculoInterno* c = malloc(sizeof(CirculoInterno));
+    if(!c){ printf("Erro de alocação.\n"); exit(1); }
 
-    if (circ == NULL) {
-        fprintf(stderr, "Falha ao alocar memória para círculo.\n");
-        exit(1);
-    }
+    c->id = id; c->x = x; c->y = y; c->raio = raio;
 
-    circ->id = id;
-    circ->cx = cx;
-    circ->cy = cy;
-    circ->r = r;
+    c->corB = malloc(strlen(corB)+1);
+    c->corP = malloc(strlen(corP)+1);
+    if(!c->corB || !c->corP){ printf("Erro de alocação.\n"); exit(1); }
+    strcpy(c->corB, corB); strcpy(c->corP, corP);
 
-    circ->borda = (char *) malloc(strlen(borda) + 1);
-    circ->preench = (char *) malloc(strlen(preench) + 1);
-
-    if (circ->borda == NULL || circ->preench == NULL) {
-        fprintf(stderr, "Erro de alocação de memória para cores.\n");
-        free(circ);
-        exit(1);
-    }
-
-    strcpy(circ->borda, borda);
-    strcpy(circ->preench, preench);
-
-    return circ;
+    return c;
 }
 
-// ======== Funções GET ========
+int obterIDCirculo(CIRCULO c){ return ((CirculoInterno*)c)->id; }
+float obterXCirculo(CIRCULO c){ return ((CirculoInterno*)c)->x; }
+float obterYCirculo(CIRCULO c){ return ((CirculoInterno*)c)->y; }
+float obterRaioCirculo(CIRCULO c){ return ((CirculoInterno*)c)->raio; }
+char* obterCorBCirculo(CIRCULO c){ return ((CirculoInterno*)c)->corB; }
+char* obterCorPCirculo(CIRCULO c){ return ((CirculoInterno*)c)->corP; }
 
-int getIdCirc(CIRCULO c) {
-    return ((CirculoImpl *) c)->id;
+void definirIDCirculo(CIRCULO c, int id){ ((CirculoInterno*)c)->id = id; }
+void definirXCirculo(CIRCULO c, float x){ ((CirculoInterno*)c)->x = x; }
+void definirYCirculo(CIRCULO c, float y){ ((CirculoInterno*)c)->y = y; }
+void definirRaioCirculo(CIRCULO c, float r){ ((CirculoInterno*)c)->raio = r; }
+
+void definirCorBCirculo(CIRCULO c, char* corB){
+    CirculoInterno* ci = c;
+    free(ci->corB); ci->corB = malloc(strlen(corB)+1);
+    if(!ci->corB){ printf("Erro de alocação.\n"); exit(1); }
+    strcpy(ci->corB, corB);
 }
 
-float getCentroXCirc(CIRCULO c) {
-    return ((CirculoImpl *) c)->cx;
+void definirCorPCirculo(CIRCULO c, char* corP){
+    CirculoInterno* ci = c;
+    free(ci->corP); ci->corP = malloc(strlen(corP)+1);
+    if(!ci->corP){ printf("Erro de alocação.\n"); exit(1); }
+    strcpy(ci->corP, corP);
 }
 
-float getCentroYCirc(CIRCULO c) {
-    return ((CirculoImpl *) c)->cy;
+float calcularAreaCirculo(CIRCULO c){ 
+    CirculoInterno* ci = c;
+    return 3.14f * ci->raio * ci->raio;
 }
 
-float getRaioCirc(CIRCULO c) {
-    return ((CirculoImpl *) c)->r;
-}
-
-char *getCorBordaCirc(CIRCULO c) {
-    return ((CirculoImpl *) c)->borda;
-}
-
-char *getCorPreenchCirc(CIRCULO c) {
-    return ((CirculoImpl *) c)->preench;
-}
-
-// ======== Funções SET ========
-
-void setIdCirc(CIRCULO c, int id) {
-    ((CirculoImpl *) c)->id = id;
-}
-
-void setCentroXCirc(CIRCULO c, float x) {
-    ((CirculoImpl *) c)->cx = x;
-}
-
-void setCentroYCirc(CIRCULO c, float y) {
-    ((CirculoImpl *) c)->cy = y;
-}
-
-void setRaioCirc(CIRCULO c, float r) {
-    ((CirculoImpl *) c)->r = r;
-}
-
-void setCorBordaCirc(CIRCULO c, char *borda) {
-    CirculoImpl *circ = (CirculoImpl *) c;
-    free(circ->borda);
-    circ->borda = (char *) malloc(strlen(borda) + 1);
-
-    if (circ->borda == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para cor da borda.\n");
-        exit(1);
-    }
-
-    strcpy(circ->borda, borda);
-}
-
-void setCorPreenchCirc(CIRCULO c, char *preench) {
-    CirculoImpl *circ = (CirculoImpl *) c;
-    free(circ->preench);
-    circ->preench = (char *) malloc(strlen(preench) + 1);
-
-    if (circ->preench == NULL) {
-        fprintf(stderr, "Erro ao alocar memória para cor de preenchimento.\n");
-        exit(1);
-    }
-
-    strcpy(circ->preench, preench);
-}
-
-// ======== Funções utilitárias ========
-
-// Calcula a área do círculo com base no raio
-float areaCirc(CIRCULO c) {
-    CirculoImpl *circ = (CirculoImpl *) c;
-    return 3.14f * (circ->r * circ->r);
-}
-
-// Libera toda a memória associada ao círculo
-void liberarCirc(CIRCULO c) {
-    CirculoImpl *circ = (CirculoImpl *) c;
-    free(circ->borda);
-    free(circ->preench);
-    free(circ);
+void liberarCirculo(CIRCULO c){
+    CirculoInterno* ci = c;
+    free(ci->corB); free(ci->corP); free(ci);
 }

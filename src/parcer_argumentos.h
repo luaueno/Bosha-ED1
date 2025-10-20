@@ -6,9 +6,6 @@ Descrição:
   Header do módulo responsável por processar os argumentos de linha de comando
   passados ao programa. Permite buscar valores associados a opções e extrair
   o sufixo do comando.
-
-Autor: (adicione seu nome)
-Data: (adicione a data atual)
 ================================================================================
 */
 
@@ -41,3 +38,4 @@ char* obterValorOpcao(int argc, char* argv[], const char* nomeOpcao);
 char* obterSufixoComando(int argc, char* argv[]);
 
 #endif
+

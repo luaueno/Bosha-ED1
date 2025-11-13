@@ -3,7 +3,7 @@
 
 #include "fila.h"
 #include "pilha.h"
-#include "leitor_arquivos.h"
+#include "gerenciador_arquivos.h"
 
 // Define tipo opaco para Chao
 typedef void* Chao;
@@ -36,3 +36,4 @@ Fila get_fila_chao(Chao chao);
 void desaloca_geo(Chao chao);
 
 #endif
+

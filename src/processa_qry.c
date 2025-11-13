@@ -5,7 +5,7 @@
 #include "retangulo.h"
 #include "linha.h"
 #include "texto.h"
-#include "trata_geo.h"
+#include "processa_geo.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -227,3 +227,4 @@ void desaloca_qry(Qry qry){
     desalocaPilha(q->pilha_para_free);
     free(q);
 }
+

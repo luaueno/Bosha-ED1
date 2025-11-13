@@ -1,12 +1,12 @@
-#include "trata_geo.h"
+#include "processa_geo.h"
 #include "fila.h"
 #include "pilha.h"
-#include "leitor_arquivos.h"
+#include "gerenciador_arquivos.h"
 #include "circulo.h"
 #include "linha.h"
 #include "retangulo.h"
 #include "texto.h"
-#include "text_style.h"
+#include "estilo_texto.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -377,5 +377,6 @@ static void cria_fila_svg(Chao_t *chao, char* caminho_output, DadosDoArquivo fil
     free(caminho_output_arquivo);
     free(nome_arquivo);
 }
+
 
 

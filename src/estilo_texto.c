@@ -1,4 +1,4 @@
-#include "estiloTexto.h"
+#include "estilo_texto.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,3 +75,4 @@ int getFSEstiloTexto(ESTILOTEXTO estilo) {
     if(!estilo) return 0;
     return ((EstiloTexto*)estilo)->fs;
 }
+

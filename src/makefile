@@ -3,7 +3,7 @@
 # -------------------------------
 
 # Nome do executável
-TARGET = simulador
+TARGET = TED
 
 # Nome do aluno (para pack)
 ALUNO = LuanaUeno
@@ -64,3 +64,4 @@ pack:
 
 # Falsos alvos
 .PHONY: all clean rebuild pack
+

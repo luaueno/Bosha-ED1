@@ -1,15 +1,3 @@
-/*
- * gerenciador_arquivos.c
- *
- * Módulo responsável por realizar a leitura e gerenciamento de arquivos de texto,
- * armazenando suas linhas em uma fila (para processamento sequencial) e em uma pilha
- * (para posterior liberação de memória).
- *
- * Este módulo implementa funções para criação, leitura, acesso e destruição de
- * estruturas que representam o conteúdo de um arquivo. O objetivo é fornecer uma
- * interface simples e segura para o controle de dados lidos de arquivos.
- */
-
 #include "gerenciador_arquivos.h"
 #include "fila.h"
 #include "pilha.h"
@@ -18,162 +6,87 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* =========================================================================
- * Estruturas internas (privadas)
- * =========================================================================
- */
-
 typedef struct {
-    const char *caminhoArquivo;        // Caminho completo do arquivo
-    const char *nomeArquivo;           // Nome do arquivo (sem o caminho)
-    Fila filaDeLinhas;                 // Fila que armazena as linhas lidas
-    Pilha pilhaLinhasParaLiberar;      // Pilha usada para liberar memória das linhas
+    const char *caminho;
+    const char *nome;
+    Fila linhas;
+    Pilha pilhaLinhas;
 } DadosDoArquivoSt;
 
-typedef struct {
-    Fila filaDeLinhas;
-    Pilha pilhaLinhasParaLiberar;
-} EstruturasDeLinhas;
-
-/* =========================================================================
- * Funções auxiliares (privadas)
- * =========================================================================
- */
-
-/// Lê uma linha do arquivo usando fgets e remove o '\n' final, se existir.
-static char* lerLinha(FILE *arquivo, char *buffer, size_t tamanho) {
-    if (fgets(buffer, tamanho, arquivo) == NULL)
-        return NULL;
-
-    size_t len = strlen(buffer);
-    if (len > 0 && buffer[len - 1] == '\n')
-        buffer[len - 1] = '\0';
-
-    return buffer;
+static char* lerLinha(FILE *f, char *buf, size_t tam) {
+    if (!fgets(buf, tam, f)) return NULL;
+    size_t len = strlen(buf);
+    if (len > 0 && buf[len-1] == '\n')
+        buf[len-1] = '\0';
+    return buf;
 }
 
-/// Duplica uma string, retornando uma cópia alocada dinamicamente.
-static char* duplicarString(const char *s) {
-    if (s == NULL)
-        return NULL;
-
+static char* dupString(const char *s) {
+    if (!s) return NULL;
     size_t len = strlen(s) + 1;
-    char *dup = malloc(len);
-    if (dup)
-        strcpy(dup, s);
-
-    return dup;
+    char *d = malloc(len);
+    if (d) strcpy(d, s);
+    return d;
 }
 
-/// Lê todas as linhas de um arquivo e as insere na fila e pilha correspondentes.
-static EstruturasDeLinhas* carregarLinhasArquivo(const char *caminhoArquivo) {
-    EstruturasDeLinhas *estruturas = malloc(sizeof(EstruturasDeLinhas));
-    if (!estruturas) {
-        printf("[ERRO] Falha ao alocar EstruturasDeLinhas.\n");
+DadosDoArquivo le_arquivo(const char *caminho) {
+    if (!caminho) return NULL;
+
+    FILE *arq = fopen(caminho, "r");
+    if (!arq) {
+        printf("[ERRO] Não foi possível abrir %s\n", caminho);
         return NULL;
     }
-
-    Fila fila = criaFila();
-    Pilha pilha = criaPilha();
-    if (!fila || !pilha) {
-        desalocaFila(fila);
-        desalocaPilha(pilha);
-        free(estruturas);
-        return NULL;
-    }
-
-    FILE *arquivo = fopen(caminhoArquivo, "r");
-    if (!arquivo) {
-        printf("[ERRO] Não foi possível abrir o arquivo: %s\n", caminhoArquivo);
-        desalocaFila(fila);
-        desalocaPilha(pilha);
-        free(estruturas);
-        return NULL;
-    }
-
-    char buffer[1024];
-    while (lerLinha(arquivo, buffer, sizeof(buffer))) {
-        char *linha = duplicarString(buffer);
-        enqueueFila(fila, linha);
-        pushPilha(pilha, linha);
-    }
-
-    fclose(arquivo);
-
-    estruturas->filaDeLinhas = fila;
-    estruturas->pilhaLinhasParaLiberar = pilha;
-    return estruturas;
-}
-
-/* =========================================================================
- * Funções principais (públicas)
- * =========================================================================
- */
-
-DadosDoArquivo criarDadosArquivo(const char *caminhoArquivo) {
-    if (!caminhoArquivo)
-        return NULL;
 
     DadosDoArquivoSt *dados = malloc(sizeof(DadosDoArquivoSt));
     if (!dados) {
-        printf("[ERRO] Falha ao alocar DadosDoArquivo.\n");
+        fclose(arq);
         return NULL;
     }
 
-    dados->caminhoArquivo = caminhoArquivo;
-    dados->nomeArquivo =
-        strrchr(caminhoArquivo, '/') ? strrchr(caminhoArquivo, '/') + 1 : caminhoArquivo;
+    dados->caminho = caminho;
+    dados->nome = strrchr(caminho, '/') ? strrchr(caminho, '/') + 1 : caminho;
 
-    EstruturasDeLinhas *estruturas = carregarLinhasArquivo(caminhoArquivo);
-    if (!estruturas) {
+    dados->linhas = novaFila();
+    dados->pilhaLinhas = criaPilha();
+
+    if (!dados->linhas || !dados->pilhaLinhas) {
+        printf("[ERRO] Falha ao criar fila ou pilha.\n");
+        if (dados->linhas) liberarFila(dados->linhas);
+        if (dados->pilhaLinhas) desalocaPilha(dados->pilhaLinhas);
         free(dados);
+        fclose(arq);
         return NULL;
     }
 
-    dados->filaDeLinhas = estruturas->filaDeLinhas;
-    dados->pilhaLinhasParaLiberar = estruturas->pilhaLinhasParaLiberar;
-    free(estruturas);
-
-    return (DadosDoArquivo)dados;
-}
-
-void destruirDadosArquivo(DadosDoArquivo dadosArquivo) {
-    if (!dadosArquivo)
-        return;
-
-    DadosDoArquivoSt *dados = (DadosDoArquivoSt *)dadosArquivo;
-
-    // Libera todas as linhas armazenadas na pilha
-    while (!pilhaVazia(dados->pilhaLinhasParaLiberar)) {
-        char *linha = popPilha(dados->pilhaLinhasParaLiberar);
-        if (linha)
-            free(linha);
+    char buffer[2048];
+    while (lerLinha(arq, buffer, sizeof(buffer))) {
+        char *linha = dupString(buffer);
+        enfileirar(dados->linhas, linha);
+        pushPilha(dados->pilhaLinhas, linha);
     }
 
-    desalocaPilha(dados->pilhaLinhasParaLiberar);
-    desalocaFila(dados->filaDeLinhas);
-    free(dados);
+    fclose(arq);
+    return dados;
 }
 
-/* =========================================================================
- * Funções de acesso (getters)
- * =========================================================================
- */
+void desaloca_geo(DadosDoArquivo dados) {
+    if (!dados) return;
 
-const char* obterCaminhoArquivo(DadosDoArquivo dadosArquivo) {
-    if (!dadosArquivo)
-        return NULL;
-    return ((DadosDoArquivoSt *)dadosArquivo)->caminhoArquivo;
+    DadosDoArquivoSt *d = (DadosDoArquivoSt *)dados;
+
+    while (!pilhaVazia(d->pilhaLinhas)) {
+        char *linha = popPilha(d->pilhaLinhas);
+        if (linha) free(linha);
+    }
+
+    desalocaPilha(d->pilhaLinhas);
+    liberarFila(d->linhas);
+
+    free(d);
 }
 
-const char* obterNomeArquivo(DadosDoArquivo dadosArquivo) {
-    if (!dadosArquivo)
-        return NULL;
-    return ((DadosDoArquivoSt *)dadosArquivo)->nomeArquivo;
-}
-
-Fila obterFilaLinhas(DadosDoArquivo dadosArquivo) {
-    if (!dadosArquivo)
-        return NULL;
-    return ((DadosDoArquivoSt *)dadosArquivo)->filaDeLinhas;
+Fila obter_linhas(DadosDoArquivo dados) {
+    if (!dados) return NULL;
+    return ((DadosDoArquivoSt *)dados)->linhas;
 }

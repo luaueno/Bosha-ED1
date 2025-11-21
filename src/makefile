@@ -1,67 +1,44 @@
-# -------------------------------
-# Makefile modular com subpastas
-# -------------------------------
-
 # Nome do executável
 TARGET = TED
 
-# Nome do aluno (para pack)
+# Nome do aluno
 ALUNO = LuanaUeno
 
 # Compilador
 CC = gcc
 
-# Flags de compilação
+# Flags
 CFLAGS = -std=c99 -Wall -Wextra -g -O0
 
 # Diretórios
-SRC_DIR = src
-INC_DIR = include
+SRC_DIR = .
 BUILD_DIR = build
-LIB_DIR = lib
 
-# Bibliotecas adicionais
+# Bibliotecas
 LIBS = -lm
-LIB_FLAGS = -L$(LIB_DIR)
-INC_FLAGS = -I$(INC_DIR)
 
-# Lista de arquivos de origem automaticamente
-SRCS = $(wildcard $(SRC_DIR)/*.c)
+# Lista de arquivos .c em src/
+SRCS = $(wildcard *.c)
 
-# Lista de arquivos objeto em build/
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
+# Arquivos objeto dentro de build/
+OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
 
-# -------------------------------
+# --------------------------------
 # Regras
-# -------------------------------
+# --------------------------------
 
-# Criar build se não existir
+all: $(BUILD_DIR) $(TARGET)
+
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Compilar todos
-all: $(BUILD_DIR) $(TARGET)
-
-# Compilar executável
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) $(LIB_FLAGS) $(LIBS) -o $(TARGET)
+	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $(TARGET)
 
-# Compilar cada objeto
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(INC_FLAGS) -c $< -o $@
+$(BUILD_DIR)/%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Limpar arquivos intermediários e executável
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
-# Recompilar do zero
 rebuild: clean all
-
-# Criar pacote zip do projeto
-pack:
-	rm -f ../$(ALUNO).zip
-	zip -r ../$(ALUNO).zip src include Makefile LEIA-ME.txt
-
-# Falsos alvos
-.PHONY: all clean rebuild pack
-

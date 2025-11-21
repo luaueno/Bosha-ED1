@@ -25,74 +25,32 @@
 /**
  * @typedef Fila
  * @brief Tipo opaco que representa uma fila genérica.
+ *
+ * IMPORTANTE: agora corretamente definido como ponteiro para struct FilaImpl,
+ * que é a estrutura usada no arquivo .c.
  */
-typedef void* Fila;
+typedef struct FilaImpl* Fila;
 
 // =========================================================
 // FUNÇÃO CONSTRUTORA
 // =========================================================
 
-/**
- * @brief Cria e inicializa uma nova fila vazia.
- *
- * @return Fila Ponteiro genérico para a fila criada, ou NULL em caso de erro.
- */
 Fila novaFila();
 
 // =========================================================
 // OPERAÇÕES BÁSICAS
 // =========================================================
 
-/**
- * @brief Insere um novo elemento no final da fila.
- *
- * @param f Ponteiro para a fila.
- * @param dados Ponteiro genérico para o conteúdo a ser armazenado.
- * @return true se a operação for bem-sucedida, false caso contrário.
- */
 bool enfileirar(Fila f, void *dados);
-
-/**
- * @brief Remove e retorna o primeiro elemento da fila.
- *
- * @param f Ponteiro para a fila.
- * @return void* Ponteiro para o conteúdo removido, ou NULL se vazia.
- */
 void* desenfileirar(Fila f);
-
-/**
- * @brief Retorna o conteúdo do primeiro elemento sem removê-lo.
- *
- * @param f Ponteiro para a fila.
- * @return void* Ponteiro para o conteúdo do início, ou NULL se vazia.
- */
 void* frenteFila(Fila f);
-
-/**
- * @brief Verifica se a fila está vazia.
- *
- * @param f Ponteiro para a fila.
- * @return true se estiver vazia, false caso contrário.
- */
 bool filaEstaVazia(Fila f);
-
-/**
- * @brief Retorna o número de elementos atualmente armazenados na fila.
- *
- * @param f Ponteiro para a fila.
- * @return int Quantidade de elementos.
- */
 int tamanhoFila(Fila f);
 
 // =========================================================
 // DESALOCADOR
 // =========================================================
 
-/**
- * @brief Libera toda a memória alocada para a fila (mas não o conteúdo dos nós).
- *
- * @param f Ponteiro para a fila a ser liberada.
- */
 void liberarFila(Fila f);
 
 #endif

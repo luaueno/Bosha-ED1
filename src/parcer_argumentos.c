@@ -1,91 +1,29 @@
-/*
-================================================================================
-Arquivo: parser_argumentos.c
---------------------------------------------------------------------------------
-Descrição:
-  Módulo responsável por processar e interpretar os argumentos de linha de comando
-  passados ao programa. Permite obter valores associados a opções e identificar
-  sufixos de comando.
-
-Funções principais:
-  - obterValorOpcao: Retorna o valor associado a uma opção passada por linha de comando.
-  - obterSufixoComando: Retorna o sufixo final do comando (último argumento sem '-').
-================================================================================
-*/
-
 #include "parser_argumentos.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-/**
- * @brief Retorna o valor associado a uma opção do tipo -opcao.
- *
- * Exemplo:
- *   ./programa -f arquivo.txt → obterValorOpcao(argc, argv, "f") → "arquivo.txt"
- *
- * @param argc Número de argumentos recebidos.
- * @param argv Vetor de strings com os argumentos.
- * @param nomeOpcao Nome da opção sem o prefixo '-'.
- * @return char* Valor associado à opção, ou NULL se não encontrado.
- */
-char* obterValorOpcao(int argc, char* argv[], const char* nomeOpcao) {
-    char formatoOpcao[64];
-    snprintf(formatoOpcao, sizeof(formatoOpcao), "-%s", nomeOpcao);
-
-    for (int i = 1; i < argc - 1; ++i) {
-        if (strcmp(argv[i], formatoOpcao) == 0) {
-            if (argv[i + 1] == NULL || argv[i + 1][0] == '-')
-                return NULL;
+static const char* obterValor(int argc, char* argv[], const char* opcao) {
+    for (int i = 1; i < argc - 1; i++) {
+        if (strcmp(argv[i], opcao) == 0) {
+            if (argv[i + 1][0] == '-') return NULL;
             return argv[i + 1];
         }
     }
     return NULL;
 }
 
-/**
- * @brief Retorna o sufixo de comando (último argumento que não começa com '-').
- *
- * Exemplo:
- *   ./programa -f arquivo.txt saida → retorna "saida"
- *
- * @param argc Número de argumentos.
- * @param argv Vetor de argumentos.
- * @return char* Ponteiro para o sufixo, ou NULL se não houver.
- */
-char* obterSufixoComando(int argc, char* argv[]) {
-    char** argvCopia = malloc(argc * sizeof(char*));
-    if (argvCopia == NULL)
-        return NULL;
+Argumentos parse_argumentos(int argc, char *argv[]) {
+    Argumentos args;
+    args.validos = 1;
 
-    for (int i = 0; i < argc; i++) {
-        argvCopia[i] = argv[i];
+    args.arquivo_geo = obterValor(argc, argv, "-geo");
+    args.arquivo_qry = obterValor(argc, argv, "-qry");
+    args.pasta_saida = obterValor(argc, argv, "-o");
+
+    if (!args.arquivo_geo || !args.arquivo_qry || !args.pasta_saida) {
+        printf("Erro: argumentos faltando.\n");
+        args.validos = 0;
     }
 
-    int novoArgc = argc;
-
-    // Remove pares de opções e valores
-    for (int i = 1; i < novoArgc - 1; i++) {
-        if (argvCopia[i][0] == '-') {
-            if (argvCopia[i + 1][0] != '-') {
-                for (int j = i; j < novoArgc - 2; j++) {
-                    argvCopia[j] = argvCopia[j + 2];
-                }
-                novoArgc -= 2;
-                i--;
-            }
-        }
-    }
-
-    char* sufixo = NULL;
-    if (novoArgc == 2) {
-        sufixo = argvCopia[novoArgc - 1];
-    } else if (novoArgc > 2) {
-        printf("Erro: mais de um sufixo encontrado.\n");
-        free(argvCopia);
-        exit(EXIT_FAILURE);
-    }
-
-    free(argvCopia);
-    return sufixo;
+    return args;
 }

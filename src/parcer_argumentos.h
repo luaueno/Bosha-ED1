@@ -3,9 +3,15 @@
 Arquivo: parser_argumentos.h
 --------------------------------------------------------------------------------
 Descrição:
-  Header do módulo responsável por processar os argumentos de linha de comando
-  passados ao programa. Permite buscar valores associados a opções e extrair
-  o sufixo do comando.
+    Este módulo é responsável por interpretar os argumentos de linha de comando
+    passados ao programa. Ele identifica e valida as opções:
+
+        -geo <arquivo.geo>
+        -qry <arquivo.qry>
+        -o <pasta_saida>
+
+    O objetivo é fornecer uma estrutura organizada que permita ao programa
+    principal (main.c) acessar facilmente os argumentos fornecidos.
 ================================================================================
 */
 
@@ -13,29 +19,75 @@ Descrição:
 #define PARSER_ARGUMENTOS_H
 
 /**
- * @brief Retorna o valor associado a uma opção do tipo -opcao.
+ * ============================================================================
+ * Estrutura: Argumentos
+ * ----------------------------------------------------------------------------
+ * Representa os parâmetros fornecidos ao programa via linha de comando.
  *
- * Exemplo:
- *   ./programa -i entrada.txt → obterValorOpcao(argc, argv, "i") → "entrada.txt"
+ * Campos:
+ *  - validos:
+ *        Indica se os argumentos foram fornecidos corretamente.
+ *        1  = argumentos corretos
+ *        0  = algo faltando ou com erro
  *
- * @param argc Número total de argumentos passados.
- * @param argv Vetor com os argumentos.
- * @param nomeOpcao Nome da opção sem o caractere '-'.
- * @return char* Ponteiro para a string com o valor associado, ou NULL se não existir.
+ *  - arquivo_geo:
+ *        Caminho para o arquivo .geo fornecido pela opção:
+ *            -geo caminho.geo
+ *
+ *  - arquivo_qry:
+ *        Caminho para o arquivo .qry fornecido pela opção:
+ *            -qry caminho.qry
+ *
+ *  - pasta_saida:
+ *        Caminho da pasta onde os resultados devem ser gerados:
+ *            -o pasta/
+ *
+ * Obs: Todos os ponteiros armazenam strings já presentes em argv[]
+ *      (não é necessário desalocar manualmente).
+ * ============================================================================
  */
-char* obterValorOpcao(int argc, char* argv[], const char* nomeOpcao);
+typedef struct {
+    int validos;               ///< 1 se argumentos são válidos, 0 caso contrário
+    const char *arquivo_geo;   ///< Caminho do arquivo .geo
+    const char *arquivo_qry;   ///< Caminho do arquivo .qry
+    const char *pasta_saida;   ///< Caminho da pasta de saída
+} Argumentos;
+
 
 /**
- * @brief Retorna o sufixo de comando (último argumento sem prefixo '-').
+ * ============================================================================
+ * Função: parse_argumentos
+ * ----------------------------------------------------------------------------
+ * Analisa os argumentos fornecidos ao programa e retorna uma estrutura
+ * Argumentos preenchida.
  *
- * Exemplo:
- *   ./programa -f arquivo.txt saida → retorna "saida"
+ * Funcionamento:
+ *  - Lê argv[] procurando pelas opções obrigatórias:
+ *        -geo <arquivo.geo>
+ *        -qry <arquivo.qry>
+ *        -o <pasta_saida>
  *
- * @param argc Número total de argumentos passados.
- * @param argv Vetor com os argumentos.
- * @return char* Ponteiro para o sufixo encontrado, ou NULL se não houver.
+ *  - Se estiver tudo correto, retorna Argumentos com:
+ *        args.validos = 1
+ *
+ *  - Caso falte alguma opção, retorna:
+ *        args.validos = 0
+ *
+ * Exemplo de uso:
+ *
+ *      Argumentos args = parse_argumentos(argc, argv);
+ *      if (!args.validos) {
+ *          printf("Erro nos argumentos.\n");
+ *          return 1;
+ *      }
+ *
+ * ============================================================================
+ *
+ * @param argc  Número total de argumentos
+ * @param argv  Vetor contendo os argumentos
+ *
+ * @return Estrutura Argumentos preenchida com os valores encontrados
  */
-char* obterSufixoComando(int argc, char* argv[]);
+Argumentos parse_argumentos(int argc, char *argv[]);
 
 #endif
-

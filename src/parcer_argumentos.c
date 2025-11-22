@@ -1,4 +1,4 @@
-#include "parser_argumentos.h"
+#include "parcer_argumentos.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -27,3 +27,4 @@ Argumentos parse_argumentos(int argc, char *argv[]) {
 
     return args;
 }
+

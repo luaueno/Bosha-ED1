@@ -5,13 +5,8 @@
  * @file estilo_texto.h
  * @brief Interface para gerenciamento de estilos de texto.
  *
- * Esta interface define funções para criação, acesso e destruição
- * de objetos que armazenam propriedades de estilo de texto, como:
- * - ff: font family
- * - fw: font weight
- * - fs: font size
- *
- * A estrutura interna é opaca e definida apenas no .c.
+ * Define funções para criação, acesso e destruição
+ * de objetos de estilo de texto.
  */
 
 #include <stdlib.h>
@@ -19,7 +14,7 @@
 /**
  * @brief Tipo opaco que representa um estilo de texto.
  */
-typedef void* ESTILOTEXTO;
+typedef void* EstiloTexto;
 
 /**
  * @brief Cria um novo objeto EstiloTexto.
@@ -28,32 +23,32 @@ typedef void* ESTILOTEXTO;
  * @param fw Font weight ("normal", "bold", etc).
  * @param fs Font size.
  *
- * @return ESTILOTEXTO Ponteiro opaco para o objeto criado, ou NULL em caso de erro.
+ * @return EstiloTexto Ponteiro opaco para o objeto criado, ou NULL em caso de erro.
  */
-ESTILOTEXTO criaEstiloTexto(char* ff, char* fw, int fs);
+EstiloTexto criaEstiloTexto(const char* ff, const char* fw, int fs);
 
 /**
  * @brief Libera toda a memória associada a um EstiloTexto.
  *
  * @param estilo Objeto criado por criaEstiloTexto.
  */
-void desalocaEstiloTexto(ESTILOTEXTO estilo);
+void desalocaEstiloTexto(EstiloTexto estilo);
 
 /**
  * @brief Retorna a font family.
  *
  * @param estilo Objeto EstiloTexto.
- * @return char* Font family, ou NULL se estilo for inválido.
+ * @return const char* Font family, ou NULL se estilo for inválido.
  */
-char* getFFEstiloTexto(ESTILOTEXTO estilo);
+const char* getFFEstiloTexto(EstiloTexto estilo);
 
 /**
  * @brief Retorna a font weight.
  *
  * @param estilo Objeto EstiloTexto.
- * @return char* Font weight, ou NULL se estilo for inválido.
+ * @return const char* Font weight, ou NULL se estilo for inválido.
  */
-char* getFWEstiloTexto(ESTILOTEXTO estilo);
+const char* getFWEstiloTexto(EstiloTexto estilo);
 
 /**
  * @brief Retorna o font size.
@@ -61,6 +56,6 @@ char* getFWEstiloTexto(ESTILOTEXTO estilo);
  * @param estilo Objeto EstiloTexto.
  * @return int Font size, ou 0 se estilo for inválido.
  */
-int getFSEstiloTexto(ESTILOTEXTO estilo);
+int getFSEstiloTexto(EstiloTexto estilo);
 
 #endif

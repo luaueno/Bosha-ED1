@@ -3,20 +3,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Estrutura interna (privada no .c) */
 typedef struct {
-    char* ff; // font family
-    char* fw; // font weight
-    int fs;   // font size
-} EstiloTexto;
+    char* ff;   // font family
+    char* fw;   // font weight
+    int fs;     // font size
+} EstiloTextoInterno;
 
 /**
  * @brief Cria um novo EstiloTexto.
  */
 ESTILOTEXTO criaEstiloTexto(char* ff, char* fw, int fs) {
 
-    if(!ff) return NULL;
+    if (!ff || !fw) 
+        return NULL;
 
-    EstiloTexto *et = malloc(sizeof(EstiloTexto));
+    EstiloTextoInterno *et = malloc(sizeof(EstiloTextoInterno));
     if(!et) return NULL;
 
     et->ff = malloc(strlen(ff) + 1);
@@ -35,7 +37,7 @@ ESTILOTEXTO criaEstiloTexto(char* ff, char* fw, int fs) {
     strcpy(et->fw, fw);
 
     et->fs = fs;
-    return et;
+    return (ESTILOTEXTO) et;
 }
 
 /**
@@ -45,7 +47,7 @@ void desalocaEstiloTexto(ESTILOTEXTO estilo) {
 
     if(!estilo) return;
 
-    EstiloTexto *et = (EstiloTexto*) estilo;
+    EstiloTextoInterno *et = (EstiloTextoInterno*) estilo;
 
     free(et->ff);
     free(et->fw);
@@ -57,7 +59,7 @@ void desalocaEstiloTexto(ESTILOTEXTO estilo) {
  */
 char* getFFEstiloTexto(ESTILOTEXTO estilo) {
     if(!estilo) return NULL;
-    return ((EstiloTexto*)estilo)->ff;
+    return ((EstiloTextoInterno*)estilo)->ff;
 }
 
 /**
@@ -65,7 +67,7 @@ char* getFFEstiloTexto(ESTILOTEXTO estilo) {
  */
 char* getFWEstiloTexto(ESTILOTEXTO estilo) {
     if(!estilo) return NULL;
-    return ((EstiloTexto*)estilo)->fw;
+    return ((EstiloTextoInterno*)estilo)->fw;
 }
 
 /**
@@ -73,6 +75,5 @@ char* getFWEstiloTexto(ESTILOTEXTO estilo) {
  */
 int getFSEstiloTexto(ESTILOTEXTO estilo) {
     if(!estilo) return 0;
-    return ((EstiloTexto*)estilo)->fs;
+    return ((EstiloTextoInterno*)estilo)->fs;
 }
-

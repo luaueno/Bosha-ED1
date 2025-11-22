@@ -1,221 +1,323 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "processa_geo.h"
-#include "circulo.h"
-#include "retangulo.h"
-#include "linha.h"
-#include "texto.h"
-#include "estilo_texto.h"
 #include "fila.h"
 #include "pilha.h"
 #include "gerenciador_arquivos.h"
+#include "circulo.h"
+#include "linha.h"
+#include "retangulo.h"
+#include "texto.h"
+#include "estilo_texto.h"
+#include <stdio.h>
+#include <string.h>
 
-//---------------------------------------------------------
-// Estruturas internas
-//---------------------------------------------------------
+enum TipoForma { CIRCLE, RECTANGLE, LINE, TEXT, TEXT_STYLE };
+typedef enum TipoForma TipoForma;
 
-typedef enum { CIRCLE, RECTANGLE, LINE, TEXT, TEXT_STYLE } TipoForma;
+typedef struct {
+    Fila fila_formas;
+    Pilha pilha_para_free;
+    Fila fila_svg;
+} Chao_t;
 
 typedef struct {
     TipoForma tipo;
-    void *data;
-} Forma;
+    void* data;
+} Forma_t;
 
-typedef struct {
-    Fila fila_formas;       // saída final
-    Pilha pilha_free;       // tudo que precisa ser desalocado
-    ESTILOTEXTO estiloAtual;
-} ChaoInterno;
-
-//---------------------------------------------------------
-// Funções auxiliares de criação de formas
-//---------------------------------------------------------
-
-static void criaCirculo_cmd(ChaoInterno *chao, char **tok) {
-    char *id = tok[1];
-    char *cx = tok[2];
-    char *cy = tok[3];
-    char *r  = tok[4];
-    char *corb = tok[5];
-    char *corp = tok[6];
-
-    CIRCULO c = criaCirculo(id, atof(cx), atof(cy), atof(r), corb, corp);
-
-    Forma *f = malloc(sizeof(Forma));
-    f->tipo = CIRCLE;
-    f->data = c;
-
-    enqueueFila(chao->fila_formas, f);
-    pushPilha(chao->pilha_free, f);
-}
-
-static void criaRetangulo_cmd(ChaoInterno *chao, char **tok) {
-    char *id = tok[1];
-    char *x  = tok[2];
-    char *y  = tok[3];
-    char *w  = tok[4];
-    char *h  = tok[5];
-    char *corb = tok[6];
-    char *corp = tok[7];
-
-    RETANGULO r = criaRetangulo(id, atof(x), atof(y), atof(w), atof(h), corb, corp);
-
-    Forma *f = malloc(sizeof(Forma));
-    f->tipo = RECTANGLE;
-    f->data = r;
-
-    enqueueFila(chao->fila_formas, f);
-    pushPilha(chao->pilha_free, f);
-}
-
-static void criaLinha_cmd(ChaoInterno *chao, char **tok) {
-    char *id = tok[1];
-    char *x1 = tok[2];
-    char *y1 = tok[3];
-    char *x2 = tok[4];
-    char *y2 = tok[5];
-    char *cor = tok[6];
-
-    LINHA l = criaLinha(id, atof(x1), atof(y1), atof(x2), atof(y2), cor);
-
-    Forma *f = malloc(sizeof(Forma));
-    f->tipo = LINE;
-    f->data = l;
-
-    enqueueFila(chao->fila_formas, f);
-    pushPilha(chao->pilha_free, f);
-}
-
-static void criaTexto_cmd(ChaoInterno *chao, char *linha_original) {
-
-    // Pega tokens iniciais
-    char *tok = strtok(linha_original, " ");
-    char *id  = strtok(NULL, " ");
-    char *x   = strtok(NULL, " ");
-    char *y   = strtok(NULL, " ");
-    char *cor = strtok(NULL, " ");
-    char *anc = strtok(NULL, " ");
-
-    // Texto é o resto da linha
-    char *texto = strtok(NULL, "\n");
-    if (!texto) texto = "";
-
-    TEXTO t = criaTexto(id, atof(x), atof(y), cor, anc, texto, chao->estiloAtual);
-
-    Forma *f = malloc(sizeof(Forma));
-    f->tipo = TEXT;
-    f->data = t;
-
-    enqueueFila(chao->fila_formas, f);
-    pushPilha(chao->pilha_free, f);
-}
-
-static void criaTextStyle_cmd(ChaoInterno *chao, char **tok) {
-    char *ff = tok[1];
-    char *fw = tok[2];
-    char *fs = tok[3];
-
-    ESTILOTEXTO ts = criaEstiloTexto(ff, fw, atoi(fs));
-    if (!ts) {
-        printf("Erro ao criar estilo de texto\n");
-        return;
-    }
-
-    chao->estiloAtual = ts;
-
-    Forma *f = malloc(sizeof(Forma));
-    f->tipo = TEXT_STYLE;
-    f->data = ts;
-
-    enqueueFila(chao->fila_formas, f);
-    pushPilha(chao->pilha_free, f);
-}
-
-//---------------------------------------------------------
-// Função principal exigida pelo .h
-//---------------------------------------------------------
+static void executa_comando_retangulo(Chao_t *chao);
+static void executa_comando_circulo(Chao_t *chao);
+static void executa_comando_linha(Chao_t *chao);
+static void executa_comando_texto(Chao_t *chao);
+static void executa_comando_textstyle(Chao_t *chao);
+static void cria_fila_svg(Chao_t *chao, char* caminho_output, DadosDoArquivo fileData, const char *sufixo_comando);
 
 Chao executa_comando_geo(DadosDoArquivo fileData, char *caminho_output, const char *sufixo_comando) {
-    (void)caminho_output; 
-    (void)sufixo_comando;
 
-    ChaoInterno *chao = malloc(sizeof(ChaoInterno));
-    chao->fila_formas = criaFila();
-    chao->pilha_free = criaPilha();
-    chao->estiloAtual = NULL;
-
-    for (int i = 0; i < fileData->num_linhas; i++) {
-
-        char buffer[512];
-        strcpy(buffer, fileData->linhas[i]);
-
-        char *cmd = strtok(buffer, " ");
-        if (!cmd) continue;
-
-        // separa tokens
-        char *tok[15];
-        int qtd = 0;
-        tok[qtd++] = cmd;
-
-        char *p = NULL;
-        while ((p = strtok(NULL, " ")) != NULL && qtd < 15) {
-            tok[qtd++] = p;
-        }
-
-        if (!strcmp(cmd, "c") && qtd >= 7) {
-            criaCirculo_cmd(chao, tok);
-        }
-        else if (!strcmp(cmd, "r") && qtd >= 8) {
-            criaRetangulo_cmd(chao, tok);
-        }
-        else if (!strcmp(cmd, "l") && qtd >= 7) {
-            criaLinha_cmd(chao, tok);
-        }
-        else if (!strcmp(cmd, "t")) {
-            char original[512];
-            strcpy(original, fileData->linhas[i]);
-            criaTexto_cmd(chao, original);
-        }
-        else if (!strcmp(cmd, "ts") && qtd >= 4) {
-            criaTextStyle_cmd(chao, tok);
-        }
+    Chao_t *chao = malloc(sizeof(Chao_t));
+    if (!chao) {
+        printf("Erro de alocação\n");
+        exit(1);
     }
 
+    chao->fila_formas = criaFila();
+    chao->pilha_para_free = criaPilha();
+    chao->fila_svg = criaFila();
+
+    while (!filaVazia(obter_fila_linhas(fileData))) {
+        char *linha = (char*)dequeueFila(obter_fila_linhas(fileData));
+        char *comando = strtok(linha, " ");
+
+        if (strcmp(comando, "c") == 0)
+            executa_comando_circulo(chao);
+
+        else if (strcmp(comando, "r") == 0)
+            executa_comando_retangulo(chao);
+
+        else if (strcmp(comando, "l") == 0)
+            executa_comando_linha(chao);
+
+        else if (strcmp(comando, "t") == 0)
+            executa_comando_texto(chao);
+
+        else if (strcmp(comando, "ts") == 0)
+            executa_comando_textstyle(chao);
+
+        else
+            printf("Comando inválido: %s\n", comando);
+    }
+
+    cria_fila_svg(chao, caminho_output, fileData, sufixo_comando);
     return chao;
 }
 
-//---------------------------------------------------------
-// Getter
-//---------------------------------------------------------
-
 Fila get_fila_chao(Chao chao) {
-    return ((ChaoInterno*)chao)->fila_formas;
+    return ((Chao_t*)chao)->fila_formas;
 }
 
-//---------------------------------------------------------
-// Liberação de memória
-//---------------------------------------------------------
-
 void desaloca_geo(Chao chao) {
-    ChaoInterno *c = (ChaoInterno*) chao;
+    Chao_t *ch = (Chao_t*)chao;
 
-    while (!pilhaVazia(c->pilha_free)) {
+    desalocaFila(ch->fila_formas);
+    desalocaFila(ch->fila_svg);
 
-        Forma *f = popPilha(c->pilha_free);
+    while (!pilhaVazia(ch->pilha_para_free)) {
+        Forma_t *forma = popPilha(ch->pilha_para_free);
 
-        switch (f->tipo) {
-            case CIRCLE:      desalocaCirculo(f->data);      break;
-            case RECTANGLE:   desalocaRetangulo(f->data);    break;
-            case LINE:        desalocaLinha(f->data);        break;
-            case TEXT:        desalocaTexto(f->data);        break;
-            case TEXT_STYLE:  desalocaEstiloTexto(f->data);  break;
+        switch (forma->tipo) {
+            case CIRCLE:
+                desalocaCirculo(forma->data);
+                break;
+
+            case RECTANGLE:
+                desalocarRetangulo(forma->data);
+                break;
+
+            case LINE:
+                desalocaLinha(forma->data);
+                break;
+
+            case TEXT:
+                liberarTexto(forma->data);
+                break;
+
+            case TEXT_STYLE:
+                desalocaEstiloTexto(forma->data);
+                break;
         }
-        free(f);
+        free(forma);
     }
 
-    desalocaFila(c->fila_formas, NULL);
-    desalocaPilha(c->pilha_free);
-    free(c);
+    desalocaPilha(ch->pilha_para_free);
+    free(ch);
+}
+
+/* ========================================================================== */
+/* ========================== EXECUTORES DE COMANDO ========================== */
+/* ========================================================================== */
+
+static void executa_comando_circulo(Chao_t *chao) {
+
+    char *id = strtok(NULL, " ");
+    char *X  = strtok(NULL, " ");
+    char *Y  = strtok(NULL, " ");
+    char *raio = strtok(NULL, " ");
+    char *corB = strtok(NULL, " ");
+    char *corP = strtok(NULL, " ");
+
+    CIRCULO c = criaCirculo(
+        atoi(id), atof(X), atof(Y),
+        atof(raio), corP, corB
+    );
+
+    Forma_t *forma = malloc(sizeof(Forma_t));
+    forma->tipo = CIRCLE;
+    forma->data = c;
+
+    enqueueFila(chao->fila_formas, forma);
+    enqueueFila(chao->fila_svg, forma);
+    pushPilha(chao->pilha_para_free, forma);
+}
+
+static void executa_comando_retangulo(Chao_t *chao) {
+
+    char *id = strtok(NULL, " ");
+    char *X  = strtok(NULL, " ");
+    char *Y  = strtok(NULL, " ");
+    char *largura = strtok(NULL, " ");
+    char *altura  = strtok(NULL, " ");
+    char *corB = strtok(NULL, " ");
+    char *corP = strtok(NULL, " ");
+
+    RETANGULO r = criaRetangulo(
+        atoi(id), atof(X), atof(Y),
+        atof(altura), atof(largura),
+        corB, corP
+    );
+
+    Forma_t *forma = malloc(sizeof(Forma_t));
+    forma->tipo = RECTANGLE;
+    forma->data = r;
+
+    enqueueFila(chao->fila_formas, forma);
+    enqueueFila(chao->fila_svg, forma);
+    pushPilha(chao->pilha_para_free, forma);
+}
+
+static void executa_comando_linha(Chao_t *chao) {
+
+    char *id = strtok(NULL, " ");
+    char *x1 = strtok(NULL, " ");
+    char *y1 = strtok(NULL, " ");
+    char *x2 = strtok(NULL, " ");
+    char *y2 = strtok(NULL, " ");
+    char *cor = strtok(NULL, " ");
+
+    LINHA l = criaLinha(
+        atoi(id), atof(x1), atof(y1),
+        atof(x2), atof(y2), cor
+    );
+
+    Forma_t *forma = malloc(sizeof(Forma_t));
+    forma->tipo = LINE;
+    forma->data = l;
+
+    enqueueFila(chao->fila_formas, forma);
+    enqueueFila(chao->fila_svg, forma);
+    pushPilha(chao->pilha_para_free, forma);
+}
+
+static void executa_comando_texto(Chao_t *chao) {
+
+    char *id = strtok(NULL, " ");
+    char *x  = strtok(NULL, " ");
+    char *y  = strtok(NULL, " ");
+    char *corB = strtok(NULL, " ");
+    char *corP = strtok(NULL, " ");
+    char *anc = strtok(NULL, " ");
+    char *txt = strtok(NULL, "");
+
+    TEXTO t = novoTexto(
+        atoi(id), atof(x), atof(y),
+        corB, corP, *anc, txt
+    );
+
+    Forma_t *forma = malloc(sizeof(Forma_t));
+    forma->tipo = TEXT;
+    forma->data = t;
+
+    enqueueFila(chao->fila_formas, forma);
+    enqueueFila(chao->fila_svg, forma);
+    pushPilha(chao->pilha_para_free, forma);
+}
+
+static void executa_comando_textstyle(Chao_t *chao) {
+
+    char *ff = strtok(NULL, " ");
+    char *fw = strtok(NULL, " ");
+    char *fs = strtok(NULL, " ");
+
+    ESTILOTEXTO ts = criaEstiloTexto(ff, fw, atoi(fs));
+
+    Forma_t *forma = malloc(sizeof(Forma_t));
+    forma->tipo = TEXT_STYLE;
+    forma->data = ts;
+
+    enqueueFila(chao->fila_formas, forma);
+    enqueueFila(chao->fila_svg, forma);
+    pushPilha(chao->pilha_para_free, forma);
+}
+
+/* ========================================================================== */
+/* ============================= GERAÇÃO DO SVG ============================ */
+/* ========================================================================== */
+
+static void cria_fila_svg(Chao_t *chao,
+                          char* caminho_output,
+                          DadosDoArquivo fileData,
+                          const char *sufixo_comando)
+{
+    const char *nome_original = obter_nome_arquivo(fileData);
+
+    char *nome = malloc(strlen(nome_original) + 1);
+    strcpy(nome, nome_original);
+    strtok(nome, ".");
+
+    if (sufixo_comando != NULL) {
+        strcat(nome, "-");
+        strcat(nome, sufixo_comando);
+    }
+
+    char caminho[1024];
+    snprintf(caminho, sizeof(caminho), "%s/%s.svg", caminho_output, nome);
+
+    FILE *file = fopen(caminho, "w");
+    if (!file) {
+        printf("Erro ao abrir arquivo SVG\n");
+        free(nome);
+        return;
+    }
+
+    fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    fprintf(file, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2000 2000\">\n");
+
+    while (!filaVazia(chao->fila_svg)) {
+
+        Forma_t *forma = dequeueFila(chao->fila_svg);
+
+        if (forma->tipo == CIRCLE) {
+            CIRCULO c = forma->data;
+
+            fprintf(file,
+                "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s'/>\n",
+                getXCirculo(c), getYCirculo(c),
+                getRaioCirculo(c), getCorPCirculo(c),
+                getCorBCirculo(c)
+            );
+        }
+
+        else if (forma->tipo == RECTANGLE) {
+            RETANGULO r = forma->data;
+
+            fprintf(file,
+                "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' "
+                "fill='%s' stroke='%s'/>\n",
+                getXRetangulo(r), getYRetangulo(r),
+                getLarguraRetangulo(r), getAlturaRetangulo(r),
+                getCorPRetangulo(r), getCorBRetangulo(r)
+            );
+        }
+
+        else if (forma->tipo == LINE) {
+            LINHA l = forma->data;
+
+            fprintf(file,
+                "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='%s'/>\n",
+                getX1Linha(l), getY1Linha(l),
+                getX2Linha(l), getY2Linha(l),
+                getCorLinha(l)
+            );
+        }
+
+        else if (forma->tipo == TEXT) {
+            TEXTO t = forma->data;
+
+            char ancora = obterAncoraTexto(t);
+            const char *anchor_svg = "start";
+
+            if (ancora == 'm' || ancora == 'M') anchor_svg = "middle";
+            else if (ancora == 'f' || ancora == 'F') anchor_svg = "end";
+
+            fprintf(file,
+                "<text x='%.2f' y='%.2f' fill='%s' stroke='%s' text-anchor='%s'>%s</text>\n",
+                obterXTexto(t), obterYTexto(t),
+                obterCorPTexto(t), obterCorBTexto(t),
+                anchor_svg,
+                obterConteudoTexto(t)
+            );
+        }
+    }
+
+    fprintf(file, "</svg>\n");
+    fclose(file);
+    free(nome);
 }

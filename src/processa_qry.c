@@ -44,13 +44,17 @@ typedef struct {
 
 // -------------------- AUXILIARES -------------------- //
 static Forma_t *clona_forma(Forma_t *f, double dx, double dy) {
-    if(!f) return NULL;
+    if (!f) return NULL;
+
     Forma_t *c = malloc(sizeof(Forma_t));
+    if (!c) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
     c->tipo = f->tipo;
-    switch(f->tipo){
+
+    switch (f->tipo) {
         case CIRCLE: {
             Circulo *orig = (Circulo*)f->data;
             Circulo *novo = malloc(sizeof(Circulo));
+            if (!novo) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
             *novo = *orig;
             novo->cx += dx; novo->cy += dy;
             c->data = novo;
@@ -59,6 +63,7 @@ static Forma_t *clona_forma(Forma_t *f, double dx, double dy) {
         case RECTANGLE: {
             Retangulo *orig = (Retangulo*)f->data;
             Retangulo *novo = malloc(sizeof(Retangulo));
+            if (!novo) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
             *novo = *orig;
             novo->x += dx; novo->y += dy;
             c->data = novo;
@@ -67,16 +72,19 @@ static Forma_t *clona_forma(Forma_t *f, double dx, double dy) {
         case LINE: {
             Linha *orig = (Linha*)f->data;
             Linha *novo = malloc(sizeof(Linha));
+            if (!novo) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
             *novo = *orig;
-            novo->x1+=dx; novo->y1+=dy; novo->x2+=dx; novo->y2+=dy;
+            novo->x1 += dx; novo->y1 += dy;
+            novo->x2 += dx; novo->y2 += dy;
             c->data = novo;
             break;
         }
         case TEXT: {
             Texto *orig = (Texto*)f->data;
             Texto *novo = malloc(sizeof(Texto));
+            if (!novo) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
             *novo = *orig;
-            novo->x+=dx; novo->y+=dy;
+            novo->x += dx; novo->y += dy;
             c->data = novo;
             break;
         }
@@ -84,35 +92,37 @@ static Forma_t *clona_forma(Forma_t *f, double dx, double dy) {
     return c;
 }
 
-static void desaloca_forma(Forma_t *f){
-    if(!f) return;
-    if(f->data) free(f->data);
+static void desaloca_forma(Forma_t *f) {
+    if (!f) return;
+    if (f->data) free(f->data);
     free(f);
 }
 
-static BoundingBox calcula_bounding_box(Forma_t *f){
-    BoundingBox bb;
+static BoundingBox calcula_bounding_box(Forma_t *f) {
+    BoundingBox bb = {0,0,0,0};
+    if (!f) return bb;
+
     switch(f->tipo){
-        case CIRCLE:{
-            Circulo *c=(Circulo*)f->data;
+        case CIRCLE: {
+            Circulo *c = (Circulo*)f->data;
             bb.minX = c->cx - c->r; bb.maxX = c->cx + c->r;
             bb.minY = c->cy - c->r; bb.maxY = c->cy + c->r;
             break;
         }
-        case RECTANGLE:{
-            Retangulo *r=(Retangulo*)f->data;
+        case RECTANGLE: {
+            Retangulo *r = (Retangulo*)f->data;
             bb.minX = r->x; bb.maxX = r->x + r->w;
             bb.minY = r->y; bb.maxY = r->y + r->h;
             break;
         }
-        case LINE:{
-            Linha *l=(Linha*)f->data;
+        case LINE: {
+            Linha *l = (Linha*)f->data;
             bb.minX = fmin(l->x1,l->x2); bb.maxX = fmax(l->x1,l->x2);
             bb.minY = fmin(l->y1,l->y2); bb.maxY = fmax(l->y1,l->y2);
             break;
         }
-        case TEXT:{
-            Texto *t=(Texto*)f->data;
+        case TEXT: {
+            Texto *t = (Texto*)f->data;
             bb.minX = t->x; bb.maxX = t->x + strlen(t->conteudo)*5; // aproximação
             bb.minY = t->y; bb.maxY = t->y + 10;
             break;
@@ -128,20 +138,24 @@ static bool sobrepoe(BoundingBox a, BoundingBox b){
 // -------------------- COMANDOS -------------------- //
 static void comando_pd(Disparador_t ***disp, int *cont){
     *disp = realloc(*disp, (*cont+1)*sizeof(Disparador_t*));
+    if (!*disp) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
     Disparador_t *d = malloc(sizeof(Disparador_t));
-    d->id = *cont+1; d->x=0; d->y=0;
+    if (!d) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
+    d->id = *cont+1; d->x = 0; d->y = 0;
     d->posicao_disparo = NULL;
-    d->carregadorDireito=NULL; d->carregadorEsquerdo=NULL;
+    d->carregadorDireito = NULL; d->carregadorEsquerdo = NULL;
     (*disp)[*cont] = d;
     (*cont)++;
 }
 
 static void comando_lc(Carregador_t ***car, int *cont){
     *car = realloc(*car, (*cont+1)*sizeof(Carregador_t*));
+    if (!*car) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
     Carregador_t *c = malloc(sizeof(Carregador_t));
+    if (!c) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
     c->id = *cont+1;
     c->formas = criaPilha();
-    (*car)[*cont]=c;
+    (*car)[*cont] = c;
     (*cont)++;
 }
 
@@ -155,12 +169,13 @@ static void comando_atch(Carregador_t **car, int cont_car, Disparador_t **disp, 
 static void comando_shft(Disparador_t **disp, int cont){
     if(cont==0) return;
     Disparador_t *d = disp[cont-1];
-    d->x+=10; d->y+=10;
+    d->x += 10; d->y += 10;
 }
 
 static void comando_dsp(Disparador_t **disp, int cont, Pilha arena){
     if(cont==0) return;
     Disparador_t *d = disp[cont-1];
+    if(!d->carregadorDireito) return;
     if(!pilhaVazia(*(d->carregadorDireito->formas))){
         Forma_t *f = (Forma_t*)popPilha(*(d->carregadorDireito->formas));
         Forma_t *copia = clona_forma(f,d->x,d->y);
@@ -171,7 +186,8 @@ static void comando_dsp(Disparador_t **disp, int cont, Pilha arena){
 static void comando_rjd(Disparador_t **disp, int cont, Pilha arena){
     if(cont==0) return;
     Disparador_t *d = disp[cont-1];
-    if(!pilhaVazia(arena) && d->carregadorDireito){
+    if(!d->carregadorDireito) return;
+    if(!pilhaVazia(arena)){
         Forma_t *f = (Forma_t*)popPilha(arena);
         pushPilha(*(d->carregadorDireito->formas), f);
     }
@@ -179,12 +195,12 @@ static void comando_rjd(Disparador_t **disp, int cont, Pilha arena){
 
 static void comando_calc(Pilha arena, FILE *txt){
     Pilha aux = criaPilha();
-    double soma=0;
+    double soma = 0;
     while(!pilhaVazia(arena)){
-        Forma_t *f=(Forma_t*)popPilha(arena);
+        Forma_t *f = (Forma_t*)popPilha(arena);
         switch(f->tipo){
-            case CIRCLE: { Circulo *c=(Circulo*)f->data; soma+=M_PI*c->r*c->r; break;}
-            case RECTANGLE: { Retangulo *r=(Retangulo*)f->data; soma+=r->w*r->h; break;}
+            case CIRCLE: { Circulo *c=(Circulo*)f->data; soma += M_PI*c->r*c->r; break; }
+            case RECTANGLE: { Retangulo *r=(Retangulo*)f->data; soma += r->w*r->h; break; }
             default: break;
         }
         pushPilha(aux,f);
@@ -197,17 +213,24 @@ static void comando_calc(Pilha arena, FILE *txt){
 // -------------------- PRINCIPAL -------------------- //
 Qry executa_qry(DadosDoArquivo dadosQry, DadosDoArquivo dadosGeo, Chao chao, const char *caminho_output){
     Qry_t *qry = malloc(sizeof(Qry_t));
+    if (!qry) { fprintf(stderr,"Erro de alocação!\n"); exit(1); }
     qry->arena = criaPilha();
     qry->pilha_para_free = criaPilha();
 
-    Disparador_t **disp = NULL; int cont_disp=0;
-    Carregador_t **car = NULL; int cont_car=0;
+    Disparador_t **disp = NULL; int cont_disp = 0;
+    Carregador_t **car = NULL; int cont_car = 0;
 
-    FILE *txt = fopen("saida.txt","w");
+    char caminho_txt[256];
+    snprintf(caminho_txt,sizeof(caminho_txt),"%s/saida.txt",caminho_output);
+    FILE *txt = fopen(caminho_txt,"w");
+    if (!txt) { fprintf(stderr,"Erro ao criar arquivo %s\n",caminho_txt); exit(1); }
+
     while(!filaVazia(obter_fila_linhas(dadosQry))){
         char *linha = (char*)dequeueFila(obter_fila_linhas(dadosQry));
+        if (!linha) continue;
         char *cmd = strtok(linha," \r\n\t");
-        if(!cmd) continue;
+        if (!cmd) { free(linha); continue; }
+
         if(strcmp(cmd,"pd")==0) comando_pd(&disp,&cont_disp);
         else if(strcmp(cmd,"lc")==0) comando_lc(&car,&cont_car);
         else if(strcmp(cmd,"atch")==0) comando_atch(car,cont_car,disp,cont_disp);
@@ -215,9 +238,13 @@ Qry executa_qry(DadosDoArquivo dadosQry, DadosDoArquivo dadosGeo, Chao chao, con
         else if(strcmp(cmd,"dsp")==0) comando_dsp(disp,cont_disp,qry->arena);
         else if(strcmp(cmd,"rjd")==0) comando_rjd(disp,cont_disp,qry->arena);
         else if(strcmp(cmd,"calc")==0) comando_calc(qry->arena,txt);
+
+        free(linha);
     }
+
     fclose(txt);
     cria_svg_com_resultado(dadosQry,dadosGeo,chao,qry->arena,caminho_output);
+
     return (Qry)qry;
 }
 
@@ -227,4 +254,3 @@ void desaloca_qry(Qry qry){
     desalocaPilha(q->pilha_para_free);
     free(q);
 }
-

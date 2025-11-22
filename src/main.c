@@ -26,38 +26,42 @@ int main(int argc, char *argv[]) {
     const char *pasta_saida = args.pasta_saida;
 
     // ---------- LEITURA DOS ARQUIVOS ---------- //
-    DadosDoArquivo geo = le_arquivo(arquivo_geo);
-    DadosDoArquivo qry_linhas = le_arquivo(arquivo_qry);
+    DadosDoArquivo geo = criar_dados_arquivo(arquivo_geo);
+    DadosDoArquivo qry = criar_dados_arquivo(arquivo_qry);
 
-    if (!geo.linhas || !qry_linhas.linhas) {
+    if (!geo || !qry) {
         printf("Erro ao ler arquivos.\n");
         return 1;
     }
 
     // ---------- PROCESSAMENTO GEO ---------- //
-    Chao chao = processa_geo(geo);
+    Chao chao = executa_comando_geo(geo, (char*)pasta_saida, "geo");
 
     if (!chao) {
         printf("Erro ao processar arquivo GEO.\n");
+        destruir_dados_arquivo(geo);
+        destruir_dados_arquivo(qry);
         return 1;
     }
 
     // ---------- EXECUÇÃO DAS QUERIES ---------- //
-    Qry qry_resultado = executa_qry(qry_linhas, geo, chao, pasta_saida);
+    ProcessaQry qry_resultado = executaProcessaQry(qry, geo, chao, pasta_saida);
 
     if (!qry_resultado) {
         printf("Erro ao processar arquivo QRY.\n");
-        desaloca_chao(chao);
-        desaloca_geo(geo);
+        desaloca_geo(chao);
+        destruir_dados_arquivo(geo);
+        destruir_dados_arquivo(qry);
         return 1;
     }
 
     printf("Processamento concluído. Arquivos gerados em: %s\n", pasta_saida);
 
     // ---------- LIMPEZA ---------- //
-    desaloca_qry(qry_resultado);
-    desaloca_chao(chao);
-    desaloca_geo(geo);
+    desalocaProcessaQry(qry_resultado);
+    desaloca_geo(chao);
+    destruir_dados_arquivo(geo);
+    destruir_dados_arquivo(qry);
 
     return 0;
 }
